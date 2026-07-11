@@ -2,6 +2,27 @@ import { useState, useEffect, useRef } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+// A random ID generated once per browser and persisted in localStorage.
+// This is NOT authentication — it doesn't identify a person — but it
+// scopes every document this browser uploads so no one else using the
+// same deployed instance can see, query, or delete it. See the
+// get_session_id() docstring in backend/app/main.py for the full
+// reasoning.
+function getSessionId() {
+  let id = localStorage.getItem("documind_session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("documind_session_id", id);
+  }
+  return id;
+}
+
+const SESSION_ID = getSessionId();
+
+function authHeaders(extra = {}) {
+  return { "X-Session-Id": SESSION_ID, ...extra };
+}
+
 function ScoreDial({ score }) {
   // score is a cosine similarity in [0,1]-ish range; clamp for display
   const pct = Math.max(0, Math.min(1, score));
@@ -80,7 +101,7 @@ export default function App() {
 
   const refreshDocuments = async () => {
     try {
-      const res = await fetch(`${API_URL}/documents`);
+      const res = await fetch(`${API_URL}/documents`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       setDocuments(await res.json());
       setApiOnline(true);
@@ -104,7 +125,11 @@ export default function App() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch(`${API_URL}/ingest`, { method: "POST", body: formData });
+      const res = await fetch(`${API_URL}/ingest`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Upload failed");
       setStatus({ type: "ok", text: data.message });
@@ -118,7 +143,10 @@ export default function App() {
   };
 
   const handleDelete = async (source) => {
-    await fetch(`${API_URL}/documents/${encodeURIComponent(source)}`, { method: "DELETE" });
+    await fetch(`${API_URL}/documents/${encodeURIComponent(source)}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
     await refreshDocuments();
   };
 
@@ -134,7 +162,7 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ question: q }),
       });
       const data = await res.json();
