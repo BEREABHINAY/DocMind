@@ -5,17 +5,30 @@ Runs in local/embedded mode out of the box (no external service needed),
 but switches to a remote Qdrant instance automatically the moment
 QDRANT_URL is set — e.g. when you point it at a free Qdrant Cloud
 cluster for a real deployment. Same code path either way.
+
+Every document is tagged with a session_id at ingest time, and every
+read/delete operation is filtered by session_id, so one user's
+uploaded documents are never visible to another user sharing the same
+deployed instance.
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
     VectorParams,
     PointStruct,
     Filter,
+    FieldCondition,
+    MatchValue,
 )
 
 from app.config import settings
+
+
+def _session_filter(session_id: str) -> Filter:
+    return Filter(
+        must=[FieldCondition(key="session_id", match=MatchValue(value=session_id))]
+    )
 
 
 class VectorStore:
@@ -49,10 +62,13 @@ class VectorStore:
         ]
         self._client.upsert(collection_name=settings.collection_name, points=points)
 
-    def search(self, query_vector: List[float], top_k: int) -> List[Dict[str, Any]]:
+    def search(
+        self, query_vector: List[float], top_k: int, session_id: str
+    ) -> List[Dict[str, Any]]:
         response = self._client.query_points(
             collection_name=settings.collection_name,
             query=query_vector,
+            query_filter=_session_filter(session_id),
             limit=top_k,
         )
         return [
@@ -60,17 +76,24 @@ class VectorStore:
             for p in response.points
         ]
 
-    def count(self) -> int:
-        info = self._client.get_collection(settings.collection_name)
-        return info.points_count or 0
+    def count(self, session_id: Optional[str] = None) -> int:
+        if session_id is None:
+            info = self._client.get_collection(settings.collection_name)
+            return info.points_count or 0
+        result = self._client.count(
+            collection_name=settings.collection_name,
+            count_filter=_session_filter(session_id),
+        )
+        return result.count
 
-    def list_sources(self) -> Dict[str, int]:
-        """Scroll the whole collection and tally chunks per source document."""
+    def list_sources(self, session_id: str) -> Dict[str, int]:
+        """Scroll this session's chunks and tally counts per source document."""
         counts: Dict[str, int] = {}
         offset = None
         while True:
             points, offset = self._client.scroll(
                 collection_name=settings.collection_name,
+                scroll_filter=_session_filter(session_id),
                 limit=256,
                 offset=offset,
                 with_payload=True,
@@ -83,11 +106,14 @@ class VectorStore:
                 break
         return counts
 
-    def delete_source(self, source: str) -> None:
+    def delete_source(self, source: str, session_id: str) -> None:
         self._client.delete(
             collection_name=settings.collection_name,
             points_selector=Filter(
-                must=[{"key": "source", "match": {"value": source}}]
+                must=[
+                    FieldCondition(key="source", match=MatchValue(value=source)),
+                    FieldCondition(key="session_id", match=MatchValue(value=session_id)),
+                ]
             ),
         )
 
