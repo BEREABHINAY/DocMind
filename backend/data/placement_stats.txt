@@ -1,0 +1,26 @@
+Placement Season Summary Report
+
+Overview
+A total of 142 companies visited campus during the last placement season,
+spanning core engineering, IT services, product-based startups, and
+analytics-focused recruiters. The season ran from August through April.
+
+Package Statistics
+The highest package offered was 44 LPA, extended by a product-based company
+for a software engineering role. The average package across all offers was
+approximately 7.8 LPA. The median package was 6.2 LPA.
+
+Branch-wise Participation
+Computer Science and AI/ML specialization students accounted for the largest
+share of offers, followed by Electronics and Communication, and Information
+Technology. Mechanical and Civil branches saw increased participation from
+core infrastructure and manufacturing recruiters this season.
+
+Role Distribution
+Software development roles made up the largest category of offers, followed
+by data analyst and business analyst roles, with a smaller number of roles
+in core hardware, DevOps, and QA testing.
+
+Internship-to-Offer Conversion
+Of the students who completed a pre-placement internship, approximately 68%
+converted their internship into a full-time offer at the same company.

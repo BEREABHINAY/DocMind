@@ -1,0 +1,33 @@
+Placement Eligibility Policy
+
+Section 1: Academic Eligibility
+Candidates must have a minimum aggregate of 60% across all semesters completed
+so far, with no active backlogs at the time of registration for any placement
+drive. Students who clear a backlog after registration but before the drive
+date may still be considered, subject to approval from the placement cell.
+
+Section 2: Branch Restrictions
+Certain core companies restrict eligibility to specific branches such as CSE,
+IT, ECE, and AI/ML specializations. Students should check the job description
+posted on the placement portal for branch-wise eligibility before applying.
+
+Section 3: Registration Requirements
+Students must submit an updated resume, a copy of their academic transcript,
+and a signed code-of-conduct declaration to complete registration for any
+placement drive. Incomplete submissions will not be processed.
+
+Section 4: Number of Attempts
+A student may appear for a maximum of two on-campus drives per company per
+academic year. Students who receive and accept an offer are moved to the
+"placed" pool and become ineligible for further core-company drives, unless
+the accepted offer falls under the dream-company exception listed in Section 5.
+
+Section 5: Dream Company Exception
+Students placed in a company below a package threshold of 6 LPA may still
+sit for drives explicitly marked as "dream companies" later in the season.
+
+Section 6: Code of Conduct
+Any student found sharing interview questions in a way that violates a
+company's confidentiality agreement, or found using unfair means during an
+online assessment, will be barred from all future placement activity for
+one academic year.

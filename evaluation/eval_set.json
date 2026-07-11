@@ -1,0 +1,27 @@
+[
+  {
+    "question": "What is the minimum aggregate percentage required to be eligible?",
+    "expected_source": "placement_policy.txt",
+    "must_contain": ["60%", "aggregate"]
+  },
+  {
+    "question": "Can a student with an active backlog apply for placements?",
+    "expected_source": "placement_policy.txt",
+    "must_contain": ["backlog"]
+  },
+  {
+    "question": "How many companies visited campus last season?",
+    "expected_source": "placement_stats.txt",
+    "must_contain": ["companies"]
+  },
+  {
+    "question": "What is the highest package offered last year?",
+    "expected_source": "placement_stats.txt",
+    "must_contain": ["LPA"]
+  },
+  {
+    "question": "What documents are required for the placement drive registration?",
+    "expected_source": "placement_policy.txt",
+    "must_contain": ["resume"]
+  }
+]
