@@ -12,7 +12,7 @@ from app.embeddings import embed_texts
 from app.vectorstore import vector_store
 
 
-def ingest_document(filename: str, file_bytes: bytes) -> int:
+def ingest_document(filename: str, file_bytes: bytes, session_id: str) -> int:
     text = extract_text(filename, file_bytes)
     chunks = chunk_text(text)
     if not chunks:
@@ -21,7 +21,7 @@ def ingest_document(filename: str, file_bytes: bytes) -> int:
     vectors = embed_texts(chunks)
     base_id = int(time.time() * 1000)
     ids = [base_id + i for i in range(len(chunks))]
-    payloads = [{"text": c, "source": filename} for c in chunks]
+    payloads = [{"text": c, "source": filename, "session_id": session_id} for c in chunks]
 
     vector_store.upsert_chunks(ids=ids, vectors=vectors, payloads=payloads)
     return len(chunks)
