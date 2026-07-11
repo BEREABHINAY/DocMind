@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.schemas import (
@@ -32,13 +32,34 @@ app.add_middleware(
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md"}
 
 
+def get_session_id(x_session_id: str = Header(...)) -> str:
+    """
+    Every request must carry an X-Session-Id header identifying the
+    caller. This is NOT authentication — it doesn't prove who someone
+    is — but it does give each browser/client its own isolated set of
+    documents in the shared vector store, so one user of a deployed
+    instance can never see, query, or delete another user's uploads.
+
+    The frontend generates a random UUID once and persists it in
+    localStorage; every request carries it.
+    """
+    if not x_session_id or not x_session_id.strip():
+        raise HTTPException(status_code=400, detail="Missing X-Session-Id header.")
+    return x_session_id.strip()
+
+
 @app.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    return HealthResponse(status="ok", documents_indexed=vector_store.count())
+def health(session_id: str = Header(None, alias="X-Session-Id")) -> HealthResponse:
+    # Health check works with or without a session so uptime monitors
+    # and the frontend's initial connectivity probe don't need one.
+    count = vector_store.count(session_id) if session_id else vector_store.count()
+    return HealthResponse(status="ok", documents_indexed=count)
 
 
 @app.post("/ingest", response_model=IngestResponse)
-async def ingest(file: UploadFile = File(...)) -> IngestResponse:
+async def ingest(
+    file: UploadFile = File(...), session_id: str = Header(..., alias="X-Session-Id")
+) -> IngestResponse:
     ext = "." + file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -50,7 +71,7 @@ async def ingest(file: UploadFile = File(...)) -> IngestResponse:
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    chunk_count = ingest_document(file.filename, file_bytes)
+    chunk_count = ingest_document(file.filename, file_bytes, session_id=session_id)
     if chunk_count == 0:
         raise HTTPException(
             status_code=422,
@@ -65,23 +86,25 @@ async def ingest(file: UploadFile = File(...)) -> IngestResponse:
 
 
 @app.get("/documents", response_model=list[DocumentInfo])
-def list_documents() -> list[DocumentInfo]:
-    counts = vector_store.list_sources()
+def list_documents(session_id: str = Header(..., alias="X-Session-Id")) -> list[DocumentInfo]:
+    counts = vector_store.list_sources(session_id=session_id)
     return [DocumentInfo(source=src, chunk_count=n) for src, n in counts.items()]
 
 
 @app.delete("/documents/{source}")
-def delete_document(source: str) -> dict:
-    vector_store.delete_source(source)
+def delete_document(source: str, session_id: str = Header(..., alias="X-Session-Id")) -> dict:
+    vector_store.delete_source(source, session_id=session_id)
     return {"message": f"Removed all chunks for '{source}'."}
 
 
 @app.post("/query", response_model=QueryResponse)
-def query(request: QueryRequest) -> QueryResponse:
+def query(
+    request: QueryRequest, session_id: str = Header(..., alias="X-Session-Id")
+) -> QueryResponse:
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
-    chunks = retrieve(request.question, top_k=request.top_k)
+    chunks = retrieve(request.question, session_id=session_id, top_k=request.top_k)
     answer = generate_answer(request.question, chunks)
 
     return QueryResponse(
